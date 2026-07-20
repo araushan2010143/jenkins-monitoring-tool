@@ -1,0 +1,8 @@
+[
+  {
+    "name": "prod-master-1",
+    "url": "https://jenkins.example.com",
+    "username": "svc-jenkins-observer",
+    "apiToken": "REPLACE_WITH_API_TOKEN"
+  }
+]

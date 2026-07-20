@@ -1,0 +1,8 @@
+{
+  "default": "https://prod-xx.westus.logic.azure.com:443/workflows/REPLACE/triggers/manual/paths/invoke",
+  "routes": {
+    "team-qa": "https://prod-xx.westus.logic.azure.com:443/workflows/REPLACE_QA/triggers/manual/paths/invoke",
+    "team-billing": "https://prod-xx.westus.logic.azure.com:443/workflows/REPLACE_BILLING/triggers/manual/paths/invoke",
+    "env-prod": "https://prod-xx.westus.logic.azure.com:443/workflows/REPLACE_PROD/triggers/manual/paths/invoke"
+  }
+}

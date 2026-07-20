@@ -1,0 +1,52 @@
+{
+  "_class": "hudson.model.ComputerSet",
+  "queueSize": 21,
+  "executorsBusy": 4,
+  "executorsTotal": 6,
+  "computer": [
+    {
+      "_class": "hudson.model.Hudson$MasterComputer",
+      "displayName": "built-in",
+      "offline": false,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "",
+      "idle": true,
+      "assignedLabels": [{ "name": "built-in" }],
+      "memUsedPercent": 50.3,
+      "diskFreeGB": 30.0
+    },
+    {
+      "_class": "hudson.slaves.SlaveComputer",
+      "displayName": "ec2-agent-01",
+      "offline": true,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "hudson.node_monitors.DiskSpaceMonitor: disk space below threshold",
+      "idle": true,
+      "assignedLabels": [{ "name": "team-billing" }],
+      "memUsedPercent": 61.4,
+      "diskFreeGB": 1.8
+    },
+    {
+      "_class": "hudson.slaves.SlaveComputer",
+      "displayName": "ec2-agent-02",
+      "offline": true,
+      "temporarilyOffline": true,
+      "offlineCauseReason": "",
+      "idle": true,
+      "assignedLabels": [],
+      "memUsedPercent": 88.9,
+      "diskFreeGB": 12.4
+    },
+    {
+      "_class": "hudson.slaves.SlaveComputer",
+      "displayName": "ec2-agent-03",
+      "offline": false,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "",
+      "idle": false,
+      "assignedLabels": [{ "name": "env-prod" }],
+      "memUsedPercent": 55.2,
+      "diskFreeGB": 22.6
+    }
+  ]
+}

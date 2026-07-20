@@ -1,0 +1,8 @@
+[
+  {
+    "name": "local-mock",
+    "url": "http://mockjenkins:8080",
+    "username": "",
+    "apiToken": ""
+  }
+]

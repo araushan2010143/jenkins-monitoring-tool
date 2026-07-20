@@ -1,0 +1,30 @@
+{
+  "_class": "hudson.model.ComputerSet",
+  "queueSize": 18,
+  "executorsBusy": 3,
+  "executorsTotal": 4,
+  "computer": [
+    {
+      "_class": "hudson.model.Hudson$MasterComputer",
+      "displayName": "built-in",
+      "offline": false,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "",
+      "idle": true,
+      "assignedLabels": [{ "name": "built-in" }],
+      "memUsedPercent": 42.5,
+      "diskFreeGB": 38.2
+    },
+    {
+      "_class": "hudson.slaves.SlaveComputer",
+      "displayName": "ec2-agent-01",
+      "offline": true,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "Native System Memory Exhaustion: java.lang.OutOfMemoryError: unable to create new native thread",
+      "idle": true,
+      "assignedLabels": [{ "name": "team-qa" }, { "name": "linux" }],
+      "memUsedPercent": 96.8,
+      "diskFreeGB": 2.1
+    }
+  ]
+}

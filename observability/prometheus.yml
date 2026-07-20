@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  # Stand-in for a real Jenkins controller's Prometheus plugin
+  # (https://plugins.jenkins.io/prometheus/) — here served by
+  # cmd/mockjenkins from the same fixture used for /computer/api/json.
+  - job_name: jenkins
+    metrics_path: /prometheus/
+    static_configs:
+      - targets: ["mockjenkins:8080"]
+
+  # The observer daemon's own operational metrics (internal/metrics).
+  - job_name: observer
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["observer:9090"]

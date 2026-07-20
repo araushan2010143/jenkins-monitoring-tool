@@ -1,0 +1,30 @@
+{
+  "_class": "hudson.model.ComputerSet",
+  "queueSize": 2,
+  "executorsBusy": 1,
+  "executorsTotal": 4,
+  "computer": [
+    {
+      "_class": "hudson.model.Hudson$MasterComputer",
+      "displayName": "built-in",
+      "offline": false,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "",
+      "idle": true,
+      "assignedLabels": [{ "name": "built-in" }],
+      "memUsedPercent": 38.0,
+      "diskFreeGB": 40.5
+    },
+    {
+      "_class": "hudson.slaves.SlaveComputer",
+      "displayName": "ec2-agent-01",
+      "offline": false,
+      "temporarilyOffline": false,
+      "offlineCauseReason": "",
+      "idle": true,
+      "assignedLabels": [{ "name": "team-qa" }, { "name": "linux" }],
+      "memUsedPercent": 44.1,
+      "diskFreeGB": 35.7
+    }
+  ]
+}

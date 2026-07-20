@@ -1,0 +1,108 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mockjenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: mockjenkins
+    environment:
+      FIXTURE_FILE: /testdata/fixtures/one-offline.json
+    ports:
+      - "8081:8080"
+
+  webhook-sink:
+    image: mendhak/http-https-echo:31
+    environment:
+      HTTP_PORT: "8080"
+    ports:
+      - "8082:8080"
+
+  observer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: observer
+    depends_on:
+      redis:
+        condition: service_healthy
+      mockjenkins:
+        condition: service_started
+      webhook-sink:
+        condition: service_started
+    environment:
+      REDIS_ADDR: redis:6379
+      POLL_INTERVAL: 10s
+      # Shorter than BREAKER_WINDOW_SECONDS below so a re-offline incident
+      # can produce a fresh "first-seen" job while the remediation cooldown
+      # is still active -- otherwise the circuit breaker's re-failure path
+      # can never be exercised locally (dedup would suppress the re-alert
+      # until after the cooldown already expired).
+      DEDUP_WINDOW: 20s
+      METRICS_ADDR: ":9090"
+      MASTERS_FILE: /app/configs/masters.local.json
+      ROUTING_FILE: /app/configs/routing.local.json
+      INSTANCES_FILE: /app/configs/instances.local.json
+      LOG_LEVEL: info
+    volumes:
+      - ./configs:/app/configs:ro
+    working_dir: /app
+    ports:
+      - "9090:9090"
+
+  remediation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: remediation
+    depends_on:
+      redis:
+        condition: service_healthy
+      webhook-sink:
+        condition: service_started
+    environment:
+      REDIS_ADDR: redis:6379
+      ROUTING_FILE: /app/configs/routing.local.json
+      REMEDIATION_MODE: dry-run
+      # Short breaker window (but still > DEDUP_WINDOW above) so the full
+      # remediate -> re-fail -> trip lifecycle can be smoke-tested in
+      # roughly a minute instead of 30 real minutes.
+      BREAKER_WINDOW_SECONDS: "60"
+    volumes:
+      - ./configs:/app/configs:ro
+    working_dir: /app
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      mockjenkins:
+        condition: service_started
+      observer:
+        condition: service_started
+    ports:
+      - "9091:9090"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      # Anonymous viewer access is a local-demo convenience only -- a real
+      # deployment must not disable Grafana auth like this.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"

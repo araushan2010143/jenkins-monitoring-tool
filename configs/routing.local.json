@@ -1,0 +1,6 @@
+{
+  "default": "http://webhook-sink:8080/webhook",
+  "routes": {
+    "team-qa": "http://webhook-sink:8080/webhook/team-qa"
+  }
+}

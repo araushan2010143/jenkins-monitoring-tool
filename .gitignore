@@ -1,0 +1,13 @@
+/bin/
+/dist/
+*.log
+
+# Real credentials — never commit these, only the .example templates.
+configs/masters.json
+configs/routing.json
+configs/instances.json
+
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
