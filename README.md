@@ -7,6 +7,11 @@ remediation with a circuit breaker to stop a persistently-broken node from
 being "fixed" on repeat, and ships Grafana dashboards for fleet health. See
 [Roadmap](#roadmap) for what's intentionally not built yet.
 
+For a visual walkthrough of the full pipeline — architecture diagram,
+incident lifecycle sequence, circuit-breaker state machine, and the
+Redis/threshold reference tables — open [`docs/workflow.html`](docs/workflow.html)
+in a browser.
+
 ## How it works
 
 **Detection & notification (Go, `cmd/observer`)**

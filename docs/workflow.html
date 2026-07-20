@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jenkins Agent Observer — Workflow</title>
+<style>
+  :root {
+    --bg: #eef1ef;
+    --surface: #ffffff;
+    --surface-2: #f4f6f4;
+    --ink: #171b1f;
+    --muted: #5b6570;
+    --line: rgba(23,27,31,0.12);
+    --line-strong: rgba(23,27,31,0.22);
+    --accent: #c96a1f;
+    --accent-ink: #ffffff;
+    --accent-wash: rgba(201,106,31,0.10);
+
+    --status-ok: #2f8a67;
+    --status-ok-wash: rgba(47,138,103,0.10);
+    --status-warn: #9c7714;
+    --status-warn-wash: rgba(156,119,20,0.12);
+    --status-critical: #ab3f2f;
+    --status-critical-wash: rgba(171,63,47,0.10);
+    --status-info: #2f6690;
+    --status-info-wash: rgba(47,102,144,0.10);
+
+    --role-input: var(--status-info);
+    --role-process: var(--accent);
+    --role-output: #6a5bb0;
+    --role-output-wash: rgba(106,91,176,0.10);
+
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --radius: 10px;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10141a;
+      --surface: #171d27;
+      --surface-2: #1d2430;
+      --ink: #e7ebef;
+      --muted: #8b97a6;
+      --line: rgba(231,235,239,0.10);
+      --line-strong: rgba(231,235,239,0.18);
+      --accent: #e2833a;
+      --accent-ink: #1a1206;
+      --accent-wash: rgba(226,131,58,0.14);
+
+      --status-ok: #45c297;
+      --status-ok-wash: rgba(69,194,151,0.12);
+      --status-warn: #e0b23c;
+      --status-warn-wash: rgba(224,178,60,0.13);
+      --status-critical: #e2685a;
+      --status-critical-wash: rgba(226,104,90,0.13);
+      --status-info: #6ba7d6;
+      --status-info-wash: rgba(107,167,214,0.13);
+
+      --role-output: #a495e0;
+      --role-output-wash: rgba(164,149,224,0.13);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10141a; --surface: #171d27; --surface-2: #1d2430; --ink: #e7ebef; --muted: #8b97a6;
+    --line: rgba(231,235,239,0.10); --line-strong: rgba(231,235,239,0.18);
+    --accent: #e2833a; --accent-ink: #1a1206; --accent-wash: rgba(226,131,58,0.14);
+    --status-ok: #45c297; --status-ok-wash: rgba(69,194,151,0.12);
+    --status-warn: #e0b23c; --status-warn-wash: rgba(224,178,60,0.13);
+    --status-critical: #e2685a; --status-critical-wash: rgba(226,104,90,0.13);
+    --status-info: #6ba7d6; --status-info-wash: rgba(107,167,214,0.13);
+    --role-output: #a495e0; --role-output-wash: rgba(164,149,224,0.13);
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #eef1ef; --surface: #ffffff; --surface-2: #f4f6f4; --ink: #171b1f; --muted: #5b6570;
+    --line: rgba(23,27,31,0.12); --line-strong: rgba(23,27,31,0.22);
+    --accent: #c96a1f; --accent-ink: #ffffff; --accent-wash: rgba(201,106,31,0.10);
+    --status-ok: #2f8a67; --status-ok-wash: rgba(47,138,103,0.10);
+    --status-warn: #9c7714; --status-warn-wash: rgba(156,119,20,0.12);
+    --status-critical: #ab3f2f; --status-critical-wash: rgba(171,63,47,0.10);
+    --status-info: #2f6690; --status-info-wash: rgba(47,102,144,0.10);
+    --role-output: #6a5bb0; --role-output-wash: rgba(106,91,176,0.10);
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: clamp(20px, 4vw, 56px) clamp(16px, 4vw, 32px) 80px; }
+
+  /* ---------- Header ---------- */
+  header.hero {
+    display: flex; flex-direction: column; gap: 18px;
+    padding-bottom: 28px; margin-bottom: 36px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  h1 {
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: clamp(28px, 4.4vw, 42px); line-height: 1.12; margin: 0;
+    text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .hero p.lede {
+    max-width: 62ch; color: var(--muted); font-size: 16px; margin: 0;
+  }
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; margin-top: 8px;
+  }
+  .stat {
+    background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat .n {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    font-size: 22px; font-weight: 700; color: var(--ink);
+  }
+  .stat .l { font-size: 12px; color: var(--muted); }
+
+  /* ---------- Sections ---------- */
+  section { margin-bottom: 56px; }
+  .sec-head { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+  .sec-num {
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em;
+  }
+  h2 {
+    font-family: var(--font-mono); font-size: clamp(20px, 2.6vw, 26px); margin: 0; text-wrap: balance;
+  }
+  .sec-desc { color: var(--muted); max-width: 68ch; font-size: 15px; margin: 2px 0 0; }
+
+  .diagram-frame {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: clamp(12px, 2vw, 22px); overflow-x: auto;
+  }
+  .diagram-frame .mermaid { min-width: 560px; }
+  .diagram-frame svg { max-width: none; }
+
+  /* ---------- Phase modules ---------- */
+  .phase-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-bottom: 18px; overflow: hidden;
+  }
+  .phase-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2);
+  }
+  .phase-title { display: flex; align-items: baseline; gap: 10px; }
+  .phase-tag {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .phase-name { font-size: 18px; font-weight: 600; }
+  .chip {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; white-space: nowrap; font-weight: 600;
+  }
+  .chip.info { background: var(--status-info-wash); color: var(--status-info); }
+  .chip.warn { background: var(--status-warn-wash); color: var(--status-warn); }
+  .chip.ok { background: var(--status-ok-wash); color: var(--status-ok); }
+
+  .phase-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  @media (max-width: 820px) { .phase-grid { grid-template-columns: 1fr; } }
+
+  .role-block {
+    padding: 16px 20px; border-top: 3px solid transparent;
+    border-right: 1px solid var(--line);
+  }
+  .role-block:last-child { border-right: none; }
+  .role-block.input { border-top-color: var(--role-input); }
+  .role-block.process { border-top-color: var(--role-process); }
+  .role-block.output { border-top-color: var(--role-output); }
+  .role-block.result.ok { border-top-color: var(--status-ok); }
+  .role-block.result.warn { border-top-color: var(--status-warn); }
+
+  .role-label {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 700; margin-bottom: 8px;
+  }
+  .role-block.input .role-label { color: var(--role-input); }
+  .role-block.process .role-label { color: var(--role-process); }
+  .role-block.output .role-label { color: var(--role-output); }
+  .role-block.result.ok .role-label { color: var(--status-ok); }
+  .role-block.result.warn .role-label { color: var(--status-warn); }
+
+  .role-block p { margin: 0; font-size: 13.5px; color: var(--ink); }
+  .role-block p + p { margin-top: 6px; }
+  .role-block ul { margin: 0; padding-left: 16px; font-size: 13.5px; }
+  .role-block li + li { margin-top: 4px; }
+
+  code, .k {
+    font-family: var(--font-mono); font-size: 0.92em; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+  }
+
+  /* ---------- Tables ---------- */
+  .table-frame { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); background: var(--surface-2); font-weight: 600;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td .k { white-space: normal; word-break: break-word; }
+
+  /* ---------- Callout ---------- */
+  .callout {
+    display: flex; gap: 14px; padding: 16px 18px; border-radius: var(--radius);
+    background: var(--status-warn-wash); border: 1px solid var(--line);
+  }
+  .callout .mark { font-family: var(--font-mono); font-weight: 700; color: var(--status-warn); flex-shrink: 0; }
+  .callout p { margin: 0; font-size: 14px; color: var(--ink); }
+  .callout p + p { margin-top: 8px; }
+
+  footer {
+    border-top: 1px solid var(--line); padding-top: 20px; margin-top: 48px;
+    color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--accent); }
+
+  noscript { display: block; padding: 12px 16px; background: var(--status-warn-wash); border-radius: var(--radius); margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <noscript>Diagrams in this page need JavaScript (they're rendered by Mermaid, loaded from a CDN). The rest of the page works without it.</noscript>
+
+  <header class="hero">
+    <div class="eyebrow">Jenkins Agent Observer</div>
+    <h1>How the whole system moves: detect → notify → heal → observe</h1>
+    <p class="lede">
+      One continuous loop, three cooperating processes. This page traces every input, decision,
+      and output — from a Jenkins agent going offline to a human seeing it on a dashboard —
+      exactly as built and smoke-tested end to end.
+    </p>
+    <div class="stat-strip">
+      <div class="stat"><div class="n">3</div><div class="l">build phases</div></div>
+      <div class="stat"><div class="n">7</div><div class="l">containers at runtime</div></div>
+      <div class="stat"><div class="n">45</div><div class="l">automated tests</div></div>
+      <div class="stat"><div class="n">&lt;80s</div><div class="l">target MTTR (blueprint)</div></div>
+    </div>
+  </header>
+
+  <section id="architecture">
+    <div class="sec-head">
+      <div class="sec-num">01 / Architecture</div>
+      <h2>Who talks to whom</h2>
+      <p class="sec-desc">
+        The Go observer and the Python remediation worker never call each other directly —
+        Redis is the only thing they share: a job queue and a handful of <code>circuit:*</code> keys.
+      </p>
+    </div>
+    <div class="diagram-frame">
+<pre class="mermaid">
+flowchart TD
+    JM["Jenkins Master(s)<br/>/computer/api/json?depth=2"]
+    OBS["Observer — Go<br/>poll · fingerprint · dedup · route"]
+    REDIS[("Redis<br/>dedup · circuit breaker · job queue")]
+    TEAMS["Microsoft Teams<br/>Adaptive Card webhooks"]
+    WORKER["Remediation Worker — Python<br/>circuit breaker · executor"]
+    SSM["AWS SSM<br/>self_heal.sh runbook"]
+    PROM["Prometheus<br/>5s scrape"]
+    GRAF["Grafana<br/>fleet dashboard"]
+
+    JM -- "poll every 30s" --> OBS
+    OBS -- "SETNX / INCR fingerprint" --> REDIS
+    OBS -- "Adaptive Card POST" --> TEAMS
+    OBS -- "LPUSH remediation:jobs" --> REDIS
+    REDIS -- "BLPOP remediation:jobs" --> WORKER
+    WORKER -- "check tripped / cooldown" --> REDIS
+    WORKER -- "SendCommand (dry-run or real)" --> SSM
+    WORKER -- "Adaptive Card POST" --> TEAMS
+    OBS -. "/metrics" .-> PROM
+    JM -. "/prometheus/" .-> PROM
+    PROM --> GRAF
+</pre>
+    </div>
+  </section>
+
+  <section id="sequence">
+    <div class="sec-head">
+      <div class="sec-num">02 / Lifecycle</div>
+      <h2>One incident, start to finish</h2>
+      <p class="sec-desc">
+        The exact sequence exercised in the live smoke test: first failure, remediation,
+        a re-failure inside the cooldown window, escalation, and eventual recovery.
+      </p>
+    </div>
+    <div class="diagram-frame">
+<pre class="mermaid">
+sequenceDiagram
+    participant J as Jenkins Master
+    participant O as Observer (Go)
+    participant R as Redis
+    participant T as Teams
+    participant W as Remediation Worker (Python)
+    participant A as AWS SSM
+
+    O->>J: GET /computer/api/json?depth=2
+    J-->>O: agent list (offline: true, reason, labels)
+    O->>R: SETNX alert:dedup:{fingerprint} EX 300
+    R-->>O: first-seen
+    O->>T: POST Adaptive Card — "Agent Offline"
+    O->>R: LPUSH remediation:jobs
+    W->>R: BLPOP remediation:jobs
+    W->>R: EXISTS circuit:tripped / circuit:cooldown
+    R-->>W: no active cooldown
+    W->>A: SendCommand self_heal.sh (or dry-run log)
+    W->>R: SET circuit:cooldown EX 1800
+    W->>T: POST Adaptive Card — "Remediation Triggered"
+    Note over J,A: node fails again before cooldown expires
+    O->>R: SETNX alert:dedup (fresh incident window)
+    W->>R: EXISTS circuit:cooldown
+    R-->>W: still active — re-failure confirmed
+    W->>R: SET circuit:tripped (no TTL)
+    W->>T: POST Adaptive Card — "Requires SRE Intervention"
+    Note over O: later poll — node is back online
+    O->>T: POST Adaptive Card — "Recovered"
+</pre>
+    </div>
+  </section>
+
+  <section id="phases">
+    <div class="sec-head">
+      <div class="sec-num">03 / Breakdown</div>
+      <h2>Input → process → output → result</h2>
+      <p class="sec-desc">Every stage read the same way: what goes in, what the code decides, what gets sent out, what changes in the real world.</p>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="phase-title"><span class="phase-tag">PHASE 1</span><span class="phase-name">Detect &amp; Notify</span></div>
+        <span class="chip info">read-only</span>
+      </div>
+      <div class="phase-grid">
+        <div class="role-block input">
+          <div class="role-label">Input</div>
+          <p>Jenkins Remote Access API response, polled every 30s per master.</p>
+          <p><code>displayName</code>, <code>offline</code>, <code>offlineCauseReason</code>, <code>assignedLabels[]</code></p>
+        </div>
+        <div class="role-block process">
+          <div class="role-label">Process</div>
+          <ul>
+            <li>Fingerprint = <code>SHA256(masterURL+node+reason)</code></li>
+            <li><code>SETNX</code> in Redis, 300s window</li>
+            <li>Re-alert only at counts 5 / 10 / 50 / 100</li>
+            <li>Resolve Teams webhook by first matching label</li>
+          </ul>
+        </div>
+        <div class="role-block output">
+          <div class="role-label">Output</div>
+          <p>Adaptive Card v1.5 <code>POST</code> to the team's Teams webhook — master, node, cause, timestamp, occurrence count, a link to the agent's status page.</p>
+        </div>
+        <div class="role-block result ok">
+          <div class="role-label">Result</div>
+          <p>Ops sees the outage within one poll cycle. Repeat polls of the same incident stay silent instead of paging the same channel every 30 seconds.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="phase-title"><span class="phase-tag">PHASE 2</span><span class="phase-name">Self-Heal</span></div>
+        <span class="chip warn">destructive · dry-run by default</span>
+      </div>
+      <div class="phase-grid">
+        <div class="role-block input">
+          <div class="role-label">Input</div>
+          <p>One job per <em>brand-new</em> incident, popped from <code>remediation:jobs</code>:</p>
+          <p><code>{master, node, instance_id, reason, labels}</code></p>
+        </div>
+        <div class="role-block process">
+          <div class="role-label">Process</div>
+          <ul>
+            <li>Circuit breaker check first (see below)</li>
+            <li><code>DryRunExecutor</code> logs the action only</li>
+            <li><code>AWSSSMExecutor</code> runs <code>self_heal.sh</code> for real via SSM</li>
+            <li>Runbook: prune docker, clear workspace, restart agent service</li>
+          </ul>
+        </div>
+        <div class="role-block output">
+          <div class="role-label">Output</div>
+          <p>Teams card — "Remediation Triggered" — plus a <code>circuit:cooldown</code> key set for 30 minutes (production default).</p>
+        </div>
+        <div class="role-block result ok">
+          <div class="role-label">Result</div>
+          <p>The node heals with no human touching a keyboard — or, in local/dry-run mode, you see exactly what would have run before it ever touches AWS.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="phase-title"><span class="phase-tag">PHASE 2b</span><span class="phase-name">Circuit Breaker</span></div>
+        <span class="chip warn">safety net</span>
+      </div>
+      <div class="phase-grid">
+        <div class="role-block input">
+          <div class="role-label">Input</div>
+          <p>A new incident on a node whose <code>circuit:cooldown</code> key is <em>still active</em> — i.e. it broke again right after being "fixed."</p>
+        </div>
+        <div class="role-block process">
+          <div class="role-label">Process</div>
+          <ul>
+            <li>Trip: <code>SET circuit:tripped</code> (no TTL)</li>
+            <li>Observer reads this key and stops enqueueing new jobs for the node</li>
+            <li><code>circuit:escalated</code> (1h TTL) stops repeat pages</li>
+          </ul>
+        </div>
+        <div class="role-block output">
+          <div class="role-label">Output</div>
+          <p>Teams card — "Requires SRE Intervention" — sent once, not on every subsequent poll.</p>
+        </div>
+        <div class="role-block result warn">
+          <div class="role-label">Result</div>
+          <p>Auto-healing is disabled for that node until a human clears it. No infinite fix-loop chewing through AWS API calls on a genuinely broken host.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head">
+        <div class="phase-title"><span class="phase-tag">PHASE 3</span><span class="phase-name">Observe</span></div>
+        <span class="chip info">read-only</span>
+      </div>
+      <div class="phase-grid">
+        <div class="role-block input">
+          <div class="role-label">Input</div>
+          <p>Prometheus scrapes two targets every 5s: the observer's own <code>/metrics</code>, and a Jenkins-metrics endpoint.</p>
+        </div>
+        <div class="role-block process">
+          <div class="role-label">Process</div>
+          <ul>
+            <li>Grafana datasource + dashboard auto-provisioned on boot</li>
+            <li>Zero manual click-through setup</li>
+            <li>5 panels, thresholds baked in (see below)</li>
+          </ul>
+        </div>
+        <div class="role-block output">
+          <div class="role-label">Output</div>
+          <p>A live dashboard: Agent Fleet Status, Queue Backlog, Memory, Disk, and Observer Health (alerts sent / suppressed / poll errors).</p>
+        </div>
+        <div class="role-block result ok">
+          <div class="role-label">Result</div>
+          <p>One glance answers "is the fleet healthy right now" — no digging through Teams history or SSH-ing into hosts.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="breaker-state">
+    <div class="sec-head">
+      <div class="sec-num">04 / State</div>
+      <h2>The circuit breaker, as states</h2>
+      <p class="sec-desc">The same logic as the sequence above, drawn as a state machine — the one path that <em>doesn't</em> self-clear.</p>
+    </div>
+    <div class="diagram-frame">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> Healthy
+    Healthy --> Remediating: agent offline (first-seen incident)
+    Remediating --> Cooldown: remediation executed, 30 min grace window starts
+    Cooldown --> Healthy: agent recovers before window ends
+    Cooldown --> Tripped: agent fails again inside the window
+    Tripped --> Healthy: SRE clears manually — redis-cli DEL circuit:tripped:...
+    Tripped --> Tripped: further offline polls — alerts continue, no re-remediation
+</pre>
+    </div>
+  </section>
+
+  <section id="schema">
+    <div class="sec-head">
+      <div class="sec-num">05 / Reference</div>
+      <h2>The Redis contract</h2>
+      <p class="sec-desc">This is the entire coupling surface between the Go and Python processes — no RPC, just these keys.</p>
+    </div>
+    <div class="table-frame">
+      <table>
+        <thead>
+          <tr><th>Key pattern</th><th>TTL</th><th>Written by</th><th>Read by</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="k">alert:dedup:{fingerprint}</span></td><td>300s (default)</td><td>Observer</td><td>Observer</td><td>Suppress duplicate polls of the same incident</td></tr>
+          <tr><td><span class="k">count:alert:dedup:{fingerprint}</span></td><td>300s</td><td>Observer</td><td>Observer</td><td>Occurrence counter driving the 5/10/50/100 re-alert thresholds</td></tr>
+          <tr><td><span class="k">remediation:jobs</span></td><td>—</td><td>Observer</td><td>Worker</td><td>Redis list used as the job queue (LPUSH / BLPOP)</td></tr>
+          <tr><td><span class="k">active:{master}:{node}</span></td><td>none, explicit</td><td>Observer</td><td>Observer</td><td>Tracks currently-offline nodes to detect the offline→online transition</td></tr>
+          <tr><td><span class="k">circuit:cooldown:{master}:{node}</span></td><td>1800s (default)</td><td>Worker</td><td>Worker</td><td>Post-remediation grace window</td></tr>
+          <tr><td><span class="k">circuit:tripped:{master}:{node}</span></td><td>none, manual clear</td><td>Worker</td><td>Worker + Observer (read-only)</td><td>Disables further remediation for the node</td></tr>
+          <tr><td><span class="k">circuit:escalated:{master}:{node}</span></td><td>3600s</td><td>Worker</td><td>Worker</td><td>Rate-limits repeat "Requires SRE Intervention" alerts</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="thresholds">
+    <div class="sec-head">
+      <div class="sec-num">06 / Reference</div>
+      <h2>What turns the dashboard red</h2>
+      <p class="sec-desc">The five Grafana panels and the exact thresholds provisioned with them.</p>
+    </div>
+    <div class="table-frame">
+      <table>
+        <thead>
+          <tr><th>Panel</th><th>Query</th><th>Threshold</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Agent Fleet Status</td><td><span class="k">sum(jenkins_node_online_status) by (node)</span></td><td>&lt; 1 → red</td><td>A node is offline</td></tr>
+          <tr><td>Queue Backlog Size</td><td><span class="k">jenkins_queue_size</span></td><td>&gt; 15 → warning</td><td>Builds are waiting on capacity</td></tr>
+          <tr><td>System Memory Usage</td><td><span class="k">jenkins_node_mem_used_percent</span></td><td>&gt; 85% → red</td><td>OOM risk on the host</td></tr>
+          <tr><td>Disk Capacity Profile</td><td><span class="k">jenkins_node_disk_free_bytes</span></td><td>&lt; 5 GiB → red</td><td>Workspace exhaustion risk</td></tr>
+          <tr><td>Observer Health</td><td><span class="k">jenkins_observer_alerts_sent_total</span> and friends</td><td>informational</td><td>Is the observer itself doing anything</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="callout">
+    <span class="mark">NOTE</span>
+    <div>
+      <p><strong>What's real vs. mocked in this build:</strong> the poll → dedup → Teams path is fully real. Remediation defaults to <code>DryRunExecutor</code> — it never touches AWS unless <code>REMEDIATION_MODE=aws-ssm</code> is set with real credentials, and even then it's only unit-tested against a mocked <code>boto3</code> client, not a live account.</p>
+      <p>The Jenkins-shaped Prometheus metrics come from <code>internal/promfake</code>, a stand-in for a real Jenkins Prometheus plugin — and the memory/disk panels stand in for a real host exporter like <code>node_exporter</code>, which a production deployment still needs to add per agent.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>Jenkins Agent Observer — generated from the working build, not a proposal.</span>
+    <a href="https://github.com/araushan2010143/jenkins-monitoring-tool">github.com/araushan2010143/jenkins-monitoring-tool</a>
+  </footer>
+
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, theme: prefersDark ? "dark" : "default", securityLevel: "strict" });
+</script>
+</body>
+</html>
