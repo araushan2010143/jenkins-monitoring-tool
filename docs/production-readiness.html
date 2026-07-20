@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production Readiness</title>
+<style>
+  :root {
+    --bg: #eef0f4;
+    --surface: #ffffff;
+    --surface-2: #e6e9f0;
+    --ink: #1b2030;
+    --muted: #5c6478;
+    --line: rgba(27,32,48,0.12);
+    --line-strong: rgba(27,32,48,0.22);
+    --accent: #4550c4;
+    --accent-ink: #ffffff;
+    --accent-wash: rgba(69,80,196,0.09);
+
+    --tier-a: #2f8a5a;      /* ready: config only */
+    --tier-a-wash: rgba(47,138,90,0.10);
+    --tier-b: #a3720f;      /* needs real infra */
+    --tier-b-wash: rgba(163,114,15,0.12);
+    --tier-c: #ab3f2f;      /* needs building */
+    --tier-c-wash: rgba(171,63,47,0.10);
+
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+    --radius: 12px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141c; --surface: #1a1e29; --surface-2: #212635;
+      --ink: #e8eaf2; --muted: #9099b0;
+      --line: rgba(232,234,242,0.10); --line-strong: rgba(232,234,242,0.18);
+      --accent: #7c86e8; --accent-ink: #12142a; --accent-wash: rgba(124,134,232,0.14);
+      --tier-a: #52bd85; --tier-a-wash: rgba(82,189,133,0.13);
+      --tier-b: #dcae44; --tier-b-wash: rgba(220,174,68,0.14);
+      --tier-c: #e2685a; --tier-c-wash: rgba(226,104,90,0.13);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141c; --surface: #1a1e29; --surface-2: #212635;
+    --ink: #e8eaf2; --muted: #9099b0;
+    --line: rgba(232,234,242,0.10); --line-strong: rgba(232,234,242,0.18);
+    --accent: #7c86e8; --accent-ink: #12142a; --accent-wash: rgba(124,134,232,0.14);
+    --tier-a: #52bd85; --tier-a-wash: rgba(82,189,133,0.13);
+    --tier-b: #dcae44; --tier-b-wash: rgba(220,174,68,0.14);
+    --tier-c: #e2685a; --tier-c-wash: rgba(226,104,90,0.13);
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #eef0f4; --surface: #ffffff; --surface-2: #e6e9f0;
+    --ink: #1b2030; --muted: #5c6478;
+    --line: rgba(27,32,48,0.12); --line-strong: rgba(27,32,48,0.22);
+    --accent: #4550c4; --accent-ink: #ffffff; --accent-wash: rgba(69,80,196,0.09);
+    --tier-a: #2f8a5a; --tier-a-wash: rgba(47,138,90,0.10);
+    --tier-b: #a3720f; --tier-b-wash: rgba(163,114,15,0.12);
+    --tier-c: #ab3f2f; --tier-c-wash: rgba(171,63,47,0.10);
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: clamp(22px,5vw,60px) clamp(16px,5vw,28px) 100px; }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+
+  /* ---- Hero ---- */
+  header.hero { padding-bottom: 26px; margin-bottom: 34px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+    font-weight: 700; margin-bottom: 10px;
+  }
+  h1 { font-size: clamp(28px, 4.6vw, 38px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; margin-bottom: 14px; }
+  .hero p.lede { font-size: 16.5px; color: var(--muted); max-width: 66ch; }
+  .hero p.lede strong { color: var(--ink); font-weight: 650; }
+  .hero .see-also { font-size: 14px; color: var(--muted); margin-top: 14px; }
+
+  /* ---- Status table ---- */
+  .table-frame { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin: 28px 0 48px; }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--surface-2); font-weight: 700;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code, .k {
+    font-family: var(--font-mono); font-size: 0.9em; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+  }
+
+  /* ---- Tier legend ---- */
+  .tier-legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line);
+    border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 48px; }
+  @media (max-width: 640px) { .tier-legend { grid-template-columns: 1fr; } }
+  .tl-cell { background: var(--surface); padding: 16px 18px; }
+  .tl-cell .tl-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; }
+  .tl-cell.a .tl-count { color: var(--tier-a); }
+  .tl-cell.b .tl-count { color: var(--tier-b); }
+  .tl-cell.c .tl-count { color: var(--tier-c); }
+  .tl-cell .tl-label { font-size: 13px; font-weight: 700; margin: 4px 0 3px; }
+  .tl-cell .tl-desc { font-size: 12.5px; color: var(--muted); }
+
+  /* ---- Sections ---- */
+  section.tier { margin-bottom: 56px; }
+  .tier-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tier-badge {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 4px 10px; border-radius: 999px; text-transform: uppercase;
+  }
+  .tier-badge.a { background: var(--tier-a-wash); color: var(--tier-a); }
+  .tier-badge.b { background: var(--tier-b-wash); color: var(--tier-b); }
+  .tier-badge.c { background: var(--tier-c-wash); color: var(--tier-c); }
+  .tier-head h2 { font-size: clamp(20px, 3vw, 24px); }
+  .tier-sub { color: var(--muted); font-size: 14.5px; max-width: 68ch; margin-top: 6px; }
+
+  /* ---- Gap cards ---- */
+  .gap-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .gap-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .gap-num {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--muted);
+    width: 24px; flex-shrink: 0;
+  }
+  .gap-title { font-size: 15.5px; font-weight: 700; }
+  .gap-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .transition { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+  @media (max-width: 560px) { .transition { grid-template-columns: 1fr; } }
+  .transition .arrow { color: var(--muted); font-size: 18px; text-align: center; }
+  @media (max-width: 560px) { .transition .arrow { transform: rotate(90deg); } }
+  .state-block { padding: 12px 14px; border-radius: 8px; font-size: 13.5px; }
+  .state-block.current { background: var(--surface-2); }
+  .state-block.needed { background: var(--accent-wash); }
+  .state-block .state-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--muted); margin-bottom: 5px; display: block;
+  }
+  .state-block.needed .state-label { color: var(--accent); }
+
+  .detail-row { display: flex; gap: 10px; font-size: 13.5px; }
+  .detail-row .dt { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--muted); flex-shrink: 0; width: 52px; padding-top: 2px; }
+  .detail-row .dd { flex: 1; }
+  .detail-row .dd ul { margin: 0; padding-left: 18px; }
+  .detail-row .dd li + li { margin-top: 4px; }
+
+  .gotcha {
+    display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; background: var(--tier-c-wash);
+    font-size: 13px;
+  }
+  .gotcha .gmark { font-family: var(--font-mono); font-weight: 700; color: var(--tier-c); flex-shrink: 0; }
+
+  /* ---- Rollout timeline ---- */
+  .rollout { display: flex; flex-direction: column; }
+  .ro-row { display: grid; grid-template-columns: 34px 1fr; gap: 14px; }
+  .ro-num-col { display: flex; flex-direction: column; align-items: center; }
+  .ro-num {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center; font-family: var(--font-mono);
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .ro-stem { flex: 1; width: 2px; background: var(--line); margin: 4px 0; }
+  .ro-row:last-child .ro-stem { display: none; }
+  .ro-content { padding-bottom: 26px; }
+  .ro-content h3 { font-size: 15.5px; font-weight: 700; margin-bottom: 4px; }
+  .ro-content p { margin: 0; font-size: 14px; color: var(--muted); max-width: 62ch; }
+
+  footer {
+    border-top: 1px solid var(--line); padding-top: 20px; margin-top: 50px;
+    color: var(--muted); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Production Readiness</div>
+    <h1>What's left before this runs against real infrastructure</h1>
+    <p class="lede">
+      Nothing built so far is fake in the sense of "doesn't work" — the logic is fully
+      proven. What's missing is <strong>real infrastructure on the other end of each
+      connection</strong>. This is every gap, exactly where it plugs into the repo, and
+      the order that actually makes sense to close them in.
+    </p>
+    <p class="see-also">See also: <a href="how-it-works.html">the plain-English overview</a> and <a href="workflow.html">the technical workflow diagram</a>.</p>
+  </header>
+
+  <div class="table-frame">
+    <table>
+      <thead><tr><th>Component</th><th>Right now</th><th>Lives at</th></tr></thead>
+      <tbody>
+        <tr><td>Jenkins controller</td><td><code>cmd/mockjenkins</code> (fixture server)</td><td>—</td></tr>
+        <tr><td>Teams channel</td><td><code>webhook-sink</code> (echo server)</td><td>—</td></tr>
+        <tr><td>AWS SSM</td><td><code>DryRunExecutor</code> (logs only, never calls AWS)</td><td><code>remediation/executor.py</code></td></tr>
+        <tr><td>Jenkins Prometheus plugin</td><td><code>internal/promfake</code> (fabricated metrics)</td><td>—</td></tr>
+        <tr><td>Host memory/disk exporter</td><td>folded into the same fixture — doesn't exist for real</td><td>—</td></tr>
+        <tr><td>Redis</td><td>single container, no persistence, no auth</td><td><code>docker-compose.yml</code></td></tr>
+        <tr><td>Grafana</td><td>anonymous access, no persistent storage</td><td><code>docker-compose.yml</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tier-legend">
+    <div class="tl-cell a"><div class="tl-count">3</div><div class="tl-label">Configuration only</div><div class="tl-desc">A slot already exists — just fill it with something real.</div></div>
+    <div class="tl-cell b"><div class="tl-count">3</div><div class="tl-label">Needs real infra first</div><div class="tl-desc">Can't configure around it — the real thing has to exist.</div></div>
+    <div class="tl-cell c"><div class="tl-count">5</div><div class="tl-label">Needs actual building</div><div class="tl-desc">Genuine gaps — code or infra that isn't written yet.</div></div>
+  </div>
+
+  <section class="tier">
+    <div class="tier-head">
+      <span class="tier-badge a">Tier A</span>
+      <h2>Configuration only</h2>
+    </div>
+    <p class="tier-sub">The code already has a slot for this. Fastest wins — fill it with something real instead of a mock.</p>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">01</span><span class="gap-title">Real Jenkins connection</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span><code>cmd/mockjenkins</code> fixture server</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>A service account with read access to <code>/computer/api/json</code></div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>cp configs/masters.example.json configs/masters.json</code> — fill in real <code>url</code>, <code>username</code>, <code>apiToken</code>.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">Manage Jenkins → Security — the account needs <code>Overall/Read</code> and <code>Agent/Read</code> at minimum. Generate the API token from that account's config page.</div></div>
+        <div class="gotcha"><span class="gmark">CHECK</span><span>Confirm <code>curl -u user:token https://jenkins/computer/api/json?depth=2</code> works before wiring it in — some setups gate this behind CSRF crumbs even on GET.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">02</span><span class="gap-title">Real Teams routing</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span><code>webhook-sink</code> echo server</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>One Teams incoming webhook per destination channel</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>cp configs/routing.example.json configs/routing.json</code> — fill in real webhook URLs.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">Per channel in Teams → Workflows app → "Post to a channel when a webhook request is received" → copy the generated URL.</div></div>
+        <div class="gotcha"><span class="gmark">CHECK</span><span>POST one real card manually first. Teams' actual Adaptive Card v1.5 rendering has quirks the spec doesn't capture, especially on mobile — confirm it looks right before trusting it in production.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">03</span><span class="gap-title">Real EC2 instance mapping</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span><code>configs/instances.local.json</code> — one fake ID</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Real node name → real EC2 instance ID, for every remediable agent</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>cp configs/instances.example.json configs/instances.json</code></div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd"><code>aws ec2 describe-instances</code> filtered by whatever tag identifies your Jenkins agents, matched against each node's display name in Jenkins.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tier">
+    <div class="tier-head">
+      <span class="tier-badge b">Tier B</span>
+      <h2>Real infrastructure has to exist first</h2>
+    </div>
+    <p class="tier-sub">No amount of local configuration substitutes for these — the real thing has to be stood up.</p>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">04</span><span class="gap-title">AWS account + IAM for remediation</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>No explicit credential wiring — relies on boto3's default chain</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Scoped IAM policy + SSM Agent running on every target instance</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>remediation/executor.py</code> (<code>AWSSSMExecutor</code>) — no code change needed if using an IAM role; the credential just has to exist wherever the container runs.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">
+          <ul>
+            <li>IAM policy scoped to <code>ssm:SendCommand</code> + <code>ssm:GetCommandInvocation</code>, restricted by tag or instance ARN — not <code>ssm:*</code></li>
+            <li>Verify the SSM Agent is actually running on target hosts</li>
+            <li>Decide: IAM role attached to the container (best practice) vs. <code>AWS_ACCESS_KEY_ID</code>/<code>AWS_SECRET_ACCESS_KEY</code> env vars (simpler, worse)</li>
+          </ul>
+        </div></div>
+        <div class="gotcha"><span class="gmark">SAFETY</span><span>Flip <code>REMEDIATION_MODE=aws-ssm</code> against a disposable test EC2 instance first — never a real Jenkins agent on the first try.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">05</span><span class="gap-title">Validate <code>self_heal.sh</code> against real agent hosts</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>Ported from the blueprint, never run against a real host</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Confirmed match against your actual agent AMI/provisioning</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>remediation/scripts/self_heal.sh</code></div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">It hardcodes <code>/home/jenkins/workspace</code>, the <code>jenkins-agent.service</code> unit name, a required <code>JENKINS_AGENT_JNLP_URL</code> env var, and <code>~/.gradle</code>/<code>~/.m2</code> cache paths. Diff every one of these against your real hosts.</div></div>
+        <div class="gotcha"><span class="gmark">RISK</span><span>A mismatched path or service name means this silently no-ops on the wrong target, or fails loudly and never restarts the agent — instead of fixing anything.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">06</span><span class="gap-title">Real Jenkins Prometheus plugin + a real host exporter</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span><code>internal/promfake</code> fabricates every metric</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>The real plugin, plus <code>node_exporter</code> on every agent host</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>observability/prometheus.yml</code> — replace the <code>jenkins</code> job's target with your real Jenkins <code>/prometheus/</code> path; add one scrape job per agent's <code>node_exporter:9100</code>.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">Install the plugin, confirm <code>curl https://jenkins/prometheus/</code> returns real metrics, then compare its actual metric names against <code>observability/grafana/dashboards/jenkins-fleet.json</code>'s queries.</div></div>
+        <div class="gotcha"><span class="gmark">EXPECT EDITS</span><span>The dashboard's queries were written against the blueprint's documented names and validated only against the mock. Plugin versions have changed metric naming before — expect to edit <code>targets[].expr</code>. The memory/disk panels specifically need rewriting to <code>node_memory_MemAvailable_bytes</code> / <code>node_filesystem_free_bytes</code>, not the promfake names.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tier">
+    <div class="tier-head">
+      <span class="tier-badge c">Tier C</span>
+      <h2>Needs actual building</h2>
+    </div>
+    <p class="tier-sub">Genuine gaps — nothing to configure your way around, this is unwritten code or infrastructure.</p>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">07</span><span class="gap-title">Persistent storage for Redis, Prometheus, Grafana</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>All three are stateless containers</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Named volumes, or a managed Redis</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>docker-compose.yml</code> — add <code>redis-data</code>, <code>prometheus-data</code>, <code>grafana-data</code> volumes; <code>redis-server --appendonly yes</code> for Redis specifically.</div></div>
+        <div class="gotcha"><span class="gmark">WHY IT MATTERS</span><span>A Redis restart today loses dedup state <em>and</em> circuit breaker trips at the same time — every "requires SRE intervention" node quietly resets to healthy. For real production, prefer a managed Redis (e.g. ElastiCache) over a container.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">08</span><span class="gap-title">Secrets management</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>Gitignored local JSON files on disk</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Orchestrator-native secrets, or a real secrets manager</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>internal/config/config.go</code> (<code>LoadMasters</code> / <code>LoadRouting</code> / <code>LoadInstances</code>) and <code>remediation/config.py</code> (<code>load_routing</code>) — both only read from disk today.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">
+          <ul>
+            <li>Mount from Kubernetes Secrets / ECS task secrets as files at the same paths — <strong>no code change needed</strong></li>
+            <li>Or add a real Secrets Manager / Vault fetch — <strong>this is an actual new loader function</strong>, alongside the existing file-based ones</li>
+          </ul>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">09</span><span class="gap-title">Monitoring the monitor</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>Nothing watches the observer itself</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>A dead-man's-switch alert independent of the observer</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd">New <code>observability/alertmanager.yml</code> + a Prometheus rules file referenced from <code>observability/prometheus.yml</code>.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">A rule like <code>absent(jenkins_observer_polls_total) for 2m</code>, routed through Alertmanager (or a dumb external uptime check on <code>/healthz</code>) to a channel that doesn't depend on the observer being alive.</div></div>
+        <div class="gotcha"><span class="gmark">WHY IT MATTERS</span><span>If the observer process crashes, right now nothing tells anyone — the whole alerting pipeline goes silent with it.</span></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">10</span><span class="gap-title">Scale validation</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span>Tested against one mock master, one or two agents</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Confirmed behavior at real fleet size</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd"><code>internal/poller</code> (recovery tracking uses a Redis <code>SCAN</code> per master per poll) and <code>HTTP_TIMEOUT</code> (10s default) in <code>internal/config</code>.</div></div>
+        <div class="detail-row"><span class="dt">How</span><div class="dd">
+          <ul>
+            <li>Confirm the <code>SCAN</code> pattern holds up at your actual agent count</li>
+            <li>Test multiple real masters polled concurrently — supported in code, never run for real</li>
+            <li>Raise <code>HTTP_TIMEOUT</code> if <code>depth=2</code> is slow on a controller with hundreds of agents</li>
+          </ul>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-head"><span class="gap-num">11</span><span class="gap-title">A real deployment target</span></div>
+      <div class="gap-body">
+        <div class="transition">
+          <div class="state-block current"><span class="state-label">Current</span><code>docker-compose.yml</code> — one host, dev-oriented</div>
+          <div class="arrow">→</div>
+          <div class="state-block needed"><span class="state-label">Needed</span>Kubernetes manifests, or Terraform for ECS/EC2 — depends on the target</div>
+        </div>
+        <div class="detail-row"><span class="dt">Where</span><div class="dd">New — doesn't exist yet in any form.</div></div>
+        <div class="gotcha"><span class="gmark">DECIDE FIRST</span><span>"Add Kubernetes support" and "add Terraform for ECS" are different pieces of work. Worth deciding the actual target before building either.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tier" id="rollout">
+    <div class="tier-head"><h2>Suggested order</h2></div>
+    <p class="tier-sub">Each step is safe to ship on its own — nothing here requires the next step to already be done.</p>
+    <div class="rollout">
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">1</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>Tier A — real Jenkins + real Teams</h3><p>Read-only, zero risk. Gets you a genuinely useful monitoring tool with no destructive capability yet.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">2</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>Prometheus plugin + node_exporter</h3><p>Extends real visibility. Still zero risk.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">3</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>Persistence + secrets management</h3><p>Makes the above durable and safe to actually deploy.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">4</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>AWS SSM against a disposable test instance</h3><p>Prove remediation works before it can touch anything real.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">5</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>Flip to real remediation on one low-stakes agent</h3><p>Not the whole fleet on day one.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">6</div><div class="ro-stem"></div></div>
+        <div class="ro-content"><h3>Monitoring-the-monitor + scale validation</h3><p>Before trusting this at full fleet size.</p></div>
+      </div>
+      <div class="ro-row">
+        <div class="ro-num-col"><div class="ro-num">7</div></div>
+        <div class="ro-content"><h3>Deployment target</h3><p>Kubernetes, Terraform, or whatever fits — once it's clear what this is actually deploying onto.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Jenkins Agent Observer — production readiness gap analysis.</footer>
+
+</div>
+</body>
+</html>

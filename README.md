@@ -7,13 +7,16 @@ remediation with a circuit breaker to stop a persistently-broken node from
 being "fixed" on repeat, and ships Grafana dashboards for fleet health. See
 [Roadmap](#roadmap) for what's intentionally not built yet.
 
-Two visual walkthroughs live in `docs/`, open either directly in a browser:
+Three visual docs live in `docs/`, open any of them directly in a browser:
 - [`docs/how-it-works.html`](docs/how-it-works.html) — no jargon, what each
   part does and why, told through a hospital analogy plus a minute-by-minute
   story of a real outage. Start here if you're not building this yourself.
 - [`docs/workflow.html`](docs/workflow.html) — the engineering version:
   architecture diagram, incident lifecycle sequence, circuit-breaker state
   machine, and the Redis key/threshold reference tables.
+- [`docs/production-readiness.html`](docs/production-readiness.html) — the
+  gap analysis: everything still mocked, what real infrastructure replaces
+  it, exactly where in the repo it plugs in, and a suggested rollout order.
 
 ## How it works
 
