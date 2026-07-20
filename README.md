@@ -227,6 +227,10 @@ Python toolchain is required, and no running Redis/services are needed —
 `miniredis` (Go) and `fakeredis` (Python) provide in-process Redis for the
 dedup and circuit-breaker tests.
 
+For a full step-by-step checklist — automated tests, a live smoke test,
+proving recovery and the circuit breaker actually fire, and where to look
+in Grafana/Prometheus — see [`TESTING.md`](TESTING.md).
+
 ## Roadmap
 
 - **Phase 1 — Detection & notification**: done. Poll → dedup → Teams alert.
